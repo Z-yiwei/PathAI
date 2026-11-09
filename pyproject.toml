@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pathai-multimodal-gpt"
+version = "0.1.0"
+description = "Image-prefix adaptation of a clinical event GPT with pathology report supervision"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "torch",
+    "numpy",
+    "Pillow",
+    "scikit-learn",
+    "matplotlib",
+]
+
+[project.optional-dependencies]
+encoders = [
+    "transformers==4.46.3",
+    "safetensors",
+    "openslide-python==1.4.7",
+    "openslide-bin==4.0.1.2",
+]
+dev = ["black"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.black]
+line-length = 88
+target-version = ["py310"]

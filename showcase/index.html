@@ -1,0 +1,780 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Explore PathAI: a visual walkthrough from pathology slides and clinical events to a multimodal GPT, report supervision, and measured outcomes."
+    />
+    <title>PathAI — From tissue to trajectory</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script src="data.js" defer></script>
+    <script src="app.js" defer></script>
+  </head>
+  <body>
+    <div class="progress" aria-hidden="true"><div id="progress"></div></div>
+    <header class="topbar">
+      <a class="brand" href="#overview"
+        ><span class="brand-mark">P<span>+</span></span
+        >PathAI<span class="brand-sub">THE VISUAL WALKTHROUGH</span></a
+      >
+      <a class="top-link" href="#results">Explore results <span>↗</span></a>
+    </header>
+    <nav class="rail" aria-label="Project steps">
+      <a href="#overview" class="active"><span>00</span><b>Overview</b></a>
+      <a href="#data"><span>01</span><b>The data</b></a>
+      <a href="#prepare"><span>02</span><b>Preparation</b></a>
+      <a href="#images"><span>03</span><b>Image encoding</b></a>
+      <a href="#reports"><span>04</span><b>Report guidance</b></a>
+      <a href="#model"><span>05</span><b>The model</b></a>
+      <a href="#training"><span>06</span><b>Learning</b></a>
+      <a href="#results"><span>07</span><b>Evaluation</b></a>
+    </nav>
+    <main>
+      <section id="overview" class="hero section">
+        <div class="hero-copy">
+          <div class="eyebrow"><i></i> MULTIMODAL PATIENT ENRICHMENT</div>
+          <h1>From tissue<br />to <em>trajectory.</em></h1>
+          <p class="lead">
+            Give a clinical event GPT the ability to see pathology. Use reports
+            to teach it what matters.
+          </p>
+          <p class="hero-note">
+            One image token. The original GPT.<br />Three connected learning
+            objectives.
+          </p>
+          <a class="button primary" href="#data"
+            >Follow the pipeline <span>↓</span></a
+          >
+        </div>
+        <div
+          class="hero-visual"
+          aria-label="Pathology image, event sequence and report supervision converge on the original GPT"
+        >
+          <div class="orbit orbit-one"></div>
+          <div class="orbit orbit-two"></div>
+          <div class="hero-slide">
+            <img
+              src="assets/patches.webp"
+              alt="Actual H&E tissue patches extracted from TCGA-50-6591"
+            /><span>H&E TISSUE · REAL SLIDE PATCHES</span>
+          </div>
+          <div class="floating events-float">
+            <small>CLINICAL EVENTS</small><code>DIAG_C34 → PROC_RESECTION</code>
+          </div>
+          <div class="floating report-float">
+            <small>REPORT SUPERVISION</small>
+            <div class="wave" aria-hidden="true">
+              <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i
+              ><i></i><i></i>
+            </div>
+            <span>512-dimensional semantic target</span>
+          </div>
+          <div class="gpt-core">
+            <span>ORIGINAL</span><strong>GPT</strong
+            ><small>2 layers · 2 heads</small>
+          </div>
+          <span class="hero-caption"
+            >Tissue + context → patient representation</span
+          >
+        </div>
+        <div class="hero-stats">
+          <div><strong>60</strong><span>patient records</span></div>
+          <div><strong>10</strong><span>whole-slide images</span></div>
+          <div><strong>45</strong><span>usable reports</span></div>
+          <div><strong>3</strong><span>input modes</span></div>
+        </div>
+      </section>
+      <section id="data" class="section">
+        <div class="section-heading">
+          <span class="section-number">01 / DATA</span>
+          <h2>Two datasets.<br /><em>Complementary signals.</em></h2>
+          <p>
+            Mayo teaches the model event sequences. TCGA connects events with
+            tissue appearance and patient outcomes.
+          </p>
+        </div>
+        <div class="dataset-grid">
+          <article class="panel dataset">
+            <div class="panel-top">
+              <span class="tag cyan">SEQUENCE LEARNING</span
+              ><span class="mini">SYNTHETIC</span>
+            </div>
+            <h3>Mayo <span>50 patients</span></h3>
+            <div
+              class="patient-dots"
+              id="mayo-dots"
+              aria-label="40 training and 10 validation patients"
+            ></div>
+            <div class="legend">
+              <span><i class="cyan-bg"></i>40 training</span
+              ><span><i class="muted-bg"></i>10 validation</span>
+            </div>
+            <p>
+              Longitudinal event tokens and available pathology reports. The
+              original GPT learns to predict the next event.
+            </p>
+            <code>patient_id + events[] + optional report</code>
+          </article>
+          <article class="panel dataset">
+            <div class="panel-top">
+              <span class="tag pink">MULTIMODAL LEARNING</span
+              ><span class="mini">TCGA LUNG CANCER</span>
+            </div>
+            <h3>TCGA <span>10 patients</span></h3>
+            <div
+              class="patient-dots"
+              id="tcga-dots"
+              aria-label="6 training and 4 validation patients"
+            ></div>
+            <div class="legend">
+              <span><i class="pink-bg"></i>6 training</span
+              ><span><i class="muted-bg"></i>4 validation</span>
+            </div>
+            <p>
+              Shorter clinical histories paired with OCR reports and H&E
+              diagnostic whole-slide images.
+            </p>
+            <code>patient_id + events[] + report + slide.svs</code>
+          </article>
+        </div>
+        <div class="wide-note">
+          <span class="note-icon">↳</span>
+          <div>
+            <strong>WSI is the image format; H&E is the stain.</strong>
+            <p>
+              A whole-slide image digitizes a tissue section. Hematoxylin and
+              eosin give that tissue its purple and pink appearance. They
+              describe the same image from two different perspectives.
+            </p>
+          </div>
+        </div>
+        <div class="panel explorer">
+          <div class="panel-top">
+            <h3>Open a patient record</h3>
+            <label class="select-label"
+              >Example
+              <select id="patient-select">
+                <option value="0">TCGA · outcome recorded</option>
+                <option value="1">TCGA · no death recorded</option>
+                <option value="2">Mayo · event pretraining</option>
+              </select></label
+            >
+          </div>
+          <div class="example-grid">
+            <pre id="raw-record"></pre>
+            <div>
+              <span class="mini">READ THE RECORD</span>
+              <h4 id="patient-title"></h4>
+              <p id="patient-summary"></p>
+              <div class="token-list" id="data-events"></div>
+              <p class="caption">
+                These are actual supplied event sequences. Event order carries
+                the sequence context; the model has no separate elapsed-time
+                encoder.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+      <section id="prepare" class="section">
+        <div class="section-heading">
+          <span class="section-number">02 / PREPARATION</span>
+          <h2>Keep the signal.<br /><em>Define the prediction point.</em></h2>
+          <p>
+            Validate the record, create a clean working copy, and separate the
+            event prefix from the outcome label.
+          </p>
+        </div>
+        <div class="flow-strip">
+          <div>
+            <b>01</b><strong>Check structure</strong
+            ><span>Required fields, unique IDs,<br />valid event strings</span>
+          </div>
+          <i>→</i>
+          <div>
+            <b>02</b><strong>Check pairing</strong
+            ><span>TCGA report + SVS<br />matched by patient ID</span>
+          </div>
+          <i>→</i>
+          <div>
+            <b>03</b><strong>Normalize reports</strong
+            ><span>Unicode, whitespace,<br />line endings</span>
+          </div>
+          <i>→</i>
+          <div>
+            <b>04</b><strong>Gate report loss</strong
+            ><span>Readability passes → use<br />otherwise → mask report</span>
+          </div>
+        </div>
+        <div class="panel timeline-panel">
+          <div class="panel-top">
+            <h3>One record, two roles</h3>
+            <span class="tag cyan">TCGA-50-6591</span>
+          </div>
+          <p>Click an event to inspect how it enters the training example.</p>
+          <div id="timeline" class="token-list timeline"></div>
+          <div class="event-detail" id="event-detail" aria-live="polite"></div>
+          <div class="two-columns">
+            <div class="inset">
+              <span class="mini">MODEL INPUT</span>
+              <h4>Through the first resection</h4>
+              <p>
+                10 events, ending in <code>PROC_RESECTION</code>. Convert tokens
+                to vocabulary IDs; pad shorter sequences with ID 0.
+              </p>
+              <code id="token-ids"></code>
+            </div>
+            <div class="inset">
+              <span class="mini">SUPERVISION</span>
+              <h4>death_recorded = 1</h4>
+              <p>
+                <code>DEATH</code> appears in the complete original record.
+                Later progression and death events stay outside the TCGA input.
+              </p>
+              <span class="tag pink">A binary recorded-outcome target</span>
+            </div>
+          </div>
+        </div>
+        <div class="quality-strip">
+          <div><strong>46</strong><span>reports supplied</span></div>
+          <span>→</span>
+          <div>
+            <strong class="text-cyan">45</strong
+            ><span>pass readability checks</span>
+          </div>
+          <span>+</span>
+          <div>
+            <strong class="text-pink">1</strong
+            ><span>report masked; patient retained</span>
+          </div>
+        </div>
+        <details>
+          <summary>What exactly does the readability check inspect?</summary>
+          <p>
+            At least 20 words; at least 45% of word tokens have three or more
+            characters; at least 55% of visible characters are alphabetic; no
+            replacement or null characters; and at least one clinical keyword.
+            Formatting is normalized in a copied report. Clinical wording is
+            preserved. A failed report receives no report loss, while its
+            patient still participates in outcome learning.
+          </p>
+        </details>
+      </section>
+      <section id="images" class="section">
+        <div class="section-heading">
+          <span class="section-number">03 / IMAGE ENCODING</span>
+          <h2>A giant slide.<br /><em>One image token.</em></h2>
+          <p>
+            Move the expensive image encoding out of the training loop. Preserve
+            tissue information in a compact patient-level representation.
+          </p>
+        </div>
+        <div class="slide-grid">
+          <div class="panel slide-panel">
+            <div class="panel-top">
+              <span class="mini">ACTUAL H&E SLIDE · TCGA-50-6591</span
+              ><label class="check"
+                ><input type="checkbox" id="show-regions" checked /> Sampled
+                regions</label
+              >
+            </div>
+            <div class="slide-wrap">
+              <img
+                src="assets/slide.webp"
+                alt="Overview of the actual H&E whole-slide image"
+              /><svg
+                id="slide-overlay"
+                role="img"
+                aria-label="Positions of the 256 sampled tissue regions"
+              ></svg>
+            </div>
+            <div class="slide-footer">
+              <span id="slide-dimensions"></span
+              ><span>SVS → tissue regions</span>
+            </div>
+          </div>
+          <div class="panel patch-panel">
+            <div class="panel-top">
+              <h3>Look closer</h3>
+              <span class="mini">12 OF 256 PATCHES</span>
+            </div>
+            <div
+              class="patch-preview"
+              id="patch-preview"
+              role="img"
+              aria-label="Selected actual tissue patch"
+            ></div>
+            <div class="patch-picker" id="patch-picker"></div>
+            <p class="caption" id="patch-caption"></p>
+          </div>
+        </div>
+        <div class="tensor-flow">
+          <div>
+            <span class="tag pink">TISSUE</span><strong>256 × 224 × 224</strong>
+            <p>RGB patches from regions with at least 50% tissue coverage</p>
+          </div>
+          <i>→</i>
+          <div>
+            <span class="tag frozen">FROZEN PHIKON</span
+            ><strong>256 × 768</strong>
+            <p>One ViT feature vector per patch; cached once</p>
+          </div>
+          <i>→</i>
+          <div>
+            <span class="tag cyan">MEAN + NORMALIZE</span
+            ><strong>1 × 768</strong>
+            <p>Average all patch vectors, then L2-normalize</p>
+          </div>
+          <i>→</i>
+          <div>
+            <span class="tag purple">TRAINABLE LINEAR</span
+            ><strong>1 × 64</strong>
+            <p>Project into the original GPT embedding space</p>
+          </div>
+        </div>
+        <p class="caption">
+          Region locations come from the project's fixed sampling coordinates.
+          Readout targets approximately 0.5 µm per pixel before resizing each
+          region to 224 × 224. Patch selection and pooling use patient-level
+          supervision, without patch-level labels.
+        </p>
+      </section>
+      <section id="reports" class="section">
+        <div class="section-heading">
+          <span class="section-number">04 / REPORT SUPERVISION</span>
+          <h2>
+            Teach with language.<br /><em>Predict without the report.</em>
+          </h2>
+          <p>
+            The report supplies a semantic training target. The patient
+            representation learns to predict that target from the chosen input
+            modality.
+          </p>
+        </div>
+        <div class="report-layout">
+          <div class="panel report-paper">
+            <div class="panel-top">
+              <span class="mini">ACTUAL OCR EXCERPT · TCGA-50-6591</span>
+              <div class="segmented" id="report-tabs">
+                <button class="active" data-report="clean" aria-pressed="true">
+                  Normalized</button
+                ><button data-report="raw" aria-pressed="false">
+                  Original
+                </button>
+              </div>
+            </div>
+            <pre id="report-text"></pre>
+            <div class="paper-footer">
+              Excerpt for display · the encoder processes the full report
+            </div>
+          </div>
+          <div class="report-steps">
+            <div>
+              <span>01</span>
+              <h4>Preserve the source wording</h4>
+              <p>
+                Normalize formatting and check readability. Clinical text,
+                including remaining OCR spellings, stays unchanged.
+              </p>
+            </div>
+            <div>
+              <span>02</span>
+              <h4>Read every chunk</h4>
+              <p id="chunk-description"></p>
+              <div id="chunks" class="chunks"></div>
+            </div>
+            <div>
+              <span>03</span>
+              <h4>Build a semantic target</h4>
+              <p>
+                Frozen PLIP → normalized chunk vectors → token-count-weighted
+                mean → normalized 512D report vector.
+              </p>
+            </div>
+          </div>
+        </div>
+        <div class="report-bridge">
+          <div>
+            <small>FROM EVENTS / IMAGE</small
+            ><strong>Patient state · 64D</strong>
+          </div>
+          <span>→</span>
+          <div>
+            <small>TRAINABLE REPORT HEAD</small
+            ><strong>Predicted report · 512D</strong>
+          </div>
+          <span>↔</span>
+          <div>
+            <small>FROZEN PLIP TARGET</small
+            ><strong>Actual report · 512D</strong>
+          </div>
+        </div>
+        <div class="wide-note">
+          <span class="note-icon">∠</span>
+          <div>
+            <strong>Loss = 1 − cosine similarity</strong>
+            <p>
+              Training pulls the predicted and target vectors toward the same
+              direction. Only training-patient reports contribute gradients. At
+              inference, the outcome head uses events, an image, or both.
+            </p>
+          </div>
+        </div>
+      </section>
+      <section id="model" class="section">
+        <div class="section-heading">
+          <span class="section-number">05 / ARCHITECTURE</span>
+          <h2>Keep the GPT.<br /><em>Give it visual context.</em></h2>
+          <p>
+            The implementation imports the supplied <code>ToyAesclea</code>. Its
+            token embeddings, positional embeddings, Transformer blocks, final
+            normalization, and language head remain the backbone.
+          </p>
+        </div>
+        <div class="panel model-panel">
+          <div class="panel-top">
+            <h3>Switch the outcome input</h3>
+            <div class="segmented" id="mode-tabs">
+              <button data-mode="events" aria-pressed="false">Events</button
+              ><button data-mode="image" aria-pressed="false">Image</button
+              ><button data-mode="both" class="active" aria-pressed="true">
+                Image + events
+              </button>
+            </div>
+          </div>
+          <div class="architecture">
+            <div class="input-tokens" id="model-tokens"></div>
+            <p class="caption" style="text-align: center">
+              E1–E4 illustrate an ordered event sequence; actual input lengths
+              vary.
+            </p>
+            <div class="vertical-arrow">
+              ↓ <span>+ learned positional embeddings</span>
+            </div>
+            <div class="gpt-block">
+              <span class="tag purple">ORIGINAL GPT · FINE-TUNED</span>
+              <h3>Causal Transformer × 2</h3>
+              <p>2 attention heads · hidden dimension 64</p>
+              <div class="block-internals">
+                <span>LayerNorm</span><i>→</i
+                ><span>Self-attention + residual</span><i>→</i
+                ><span>LayerNorm → MLP + residual</span>
+              </div>
+            </div>
+            <div class="vertical-arrow">
+              ↓
+              <span>final LayerNorm → last valid state → L2 normalization</span>
+            </div>
+            <div class="patient-state">
+              Patient representation <strong>64D</strong>
+            </div>
+            <div class="output-heads">
+              <div>
+                <span>↙</span>
+                <h4>Outcome head</h4>
+                <code>64 → 1 → sigmoid</code>
+                <p>Probability of <b>death_recorded</b></p>
+              </div>
+              <div>
+                <span>↘</span>
+                <h4>Report head</h4>
+                <code>64 → 512</code>
+                <p>Auxiliary semantic prediction</p>
+              </div>
+            </div>
+          </div>
+          <div class="two-columns attention-explain">
+            <div>
+              <h4>Who can attend to whom?</h4>
+              <p id="mode-description"></p>
+              <p class="caption">
+                This is the causal visibility mask, not learned attention
+                weights. Rows are queries; columns are visible keys. The final
+                row supplies the patient representation.
+              </p>
+            </div>
+            <div>
+              <div
+                id="attention-grid"
+                class="attention-grid"
+                role="img"
+                aria-label="Causal attention visibility"
+              ></div>
+              <div class="legend">
+                <span><i class="cyan-bg"></i>Visible context</span
+                ><span><i class="muted-bg"></i>Future masked</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="caption">
+          The three modes are fine-tuned as separate models from the same
+          pretrained GPT within each run. All retain language and report
+          auxiliary objectives. The combined mode also uses the image prefix for
+          TCGA next-event prediction. The vocabulary expands to 48 entries
+          including padding; existing token-embedding and language-head rows are
+          copied from the pretrained GPT.
+        </p>
+      </section>
+      <section id="training" class="section">
+        <div class="section-heading">
+          <span class="section-number">06 / TRAINING</span>
+          <h2>One backbone.<br /><em>Three reasons to learn.</em></h2>
+          <p>
+            First recover event-sequence modeling. Then jointly optimize outcome
+            prediction, event continuity, and report semantics.
+          </p>
+        </div>
+        <div class="training-stages">
+          <div>
+            <span class="tag cyan">STAGE 1</span>
+            <h3>Original Mayo pretraining</h3>
+            <p>300 steps · batch size 32 · AdamW · learning rate 3 × 10⁻⁴</p>
+            <div class="next-event">
+              <code>DEMO_SEX_M → DIAG_C50 → PROC_MAMMOGRAM</code
+              ><span>↓ shifted targets</span
+              ><code>DIAG_C50 → PROC_MAMMOGRAM → LAB_CA153_HIGH</code>
+            </div>
+            <p class="caption">
+              Actual prefix from SYN-0000. Cross-entropy teaches each position
+              to predict the next event.
+            </p>
+            <div class="mini-result">
+              <span>Validation cross-entropy</span
+              ><strong id="pretrain-drop"></strong>
+            </div>
+          </div>
+          <div>
+            <span class="tag purple">STAGE 2</span>
+            <h3>Multimodal fine-tuning</h3>
+            <p>Up to 100 steps · AdamW · gradient clipping at 1.0</p>
+            <div class="parameter-row">
+              <span>GPT parameters</span><code>lr = 10⁻⁴</code>
+            </div>
+            <div class="parameter-row">
+              <span>New projection + heads</span><code>lr = 10⁻³</code>
+            </div>
+            <div class="parameter-row">
+              <span>Phikon + PLIP</span><span class="tag frozen">FROZEN</span>
+            </div>
+            <p class="caption">
+              Each step combines all six TCGA training patients with a batch of
+              32 Mayo training patients. Weight decay is 0.01.
+            </p>
+          </div>
+        </div>
+        <div class="loss-equation">
+          <span class="loss-symbol">L =</span
+          ><button data-loss="outcome" class="active">
+            <strong>Outcome BCE</strong
+            ><small>predict the recorded outcome</small></button
+          ><b>+</b
+          ><button data-loss="events">
+            <strong>0.1 × Event CE</strong
+            ><small>preserve sequence learning</small></button
+          ><b>+</b
+          ><button data-loss="report">
+            <strong>0.1 × Report loss</strong
+            ><small>learn pathology semantics</small>
+          </button>
+        </div>
+        <div class="loss-detail" id="loss-detail" aria-live="polite"></div>
+        <div class="two-columns">
+          <div class="panel">
+            <div class="panel-top">
+              <h3>Make BCE tangible</h3>
+              <span class="tag">INTERACTIVE EXAMPLE</span>
+            </div>
+            <p>
+              For a patient whose target is <code>y = 1</code>, move the
+              predicted probability and watch the loss change.
+            </p>
+            <label class="slider-label" for="probability"
+              >Predicted probability
+              <strong id="probability-value"></strong></label
+            ><input id="probability" type="range" min="1" max="99" value="62" />
+            <div class="loss-readout">
+              <span>BCE = −log(p)</span><strong id="bce-value"></strong>
+            </div>
+            <p class="caption">
+              An illustrative calculation; this slider does not run the model.
+            </p>
+          </div>
+          <div class="panel">
+            <h3>A complete optimization step</h3>
+            <ol class="optimization">
+              <li>
+                <b>Forward</b
+                ><span
+                  >Compute outcomes, next-event logits, and report
+                  vectors.</span
+                >
+              </li>
+              <li>
+                <b>Combine</b
+                ><span>Sum the three losses with their fixed weights.</span>
+              </li>
+              <li>
+                <b>Backward</b
+                ><span
+                  >Propagate gradients through the GPT and added layers.</span
+                >
+              </li>
+              <li>
+                <b>Update</b
+                ><span>Clip gradients, then take an AdamW step.</span>
+              </li>
+            </ol>
+          </div>
+        </div>
+      </section>
+      <section id="results" class="section">
+        <div class="section-heading">
+          <span class="section-number">07 / EVALUATION</span>
+          <h2>Follow the learning.<br /><em>Compare the inputs.</em></h2>
+          <p>
+            Selected development-validation runs. Each uses six training and
+            four validation patients, with two positive and two negative
+            validation labels.
+          </p>
+        </div>
+        <div class="results-toolbar">
+          <div class="segmented" id="run-tabs">
+            <button data-run="a" class="active" aria-pressed="true">
+              Run A</button
+            ><button data-run="b" aria-pressed="false">Run B</button>
+          </div>
+          <span>Checkpoint selection: minimum validation BCE</span>
+        </div>
+        <div class="metric-cards" id="metric-cards"></div>
+        <div class="panel chart-panel">
+          <div class="panel-top">
+            <div>
+              <h3 id="chart-title">Validation BCE</h3>
+              <p class="caption">
+                Actual logged values · dots mark selected checkpoints
+              </p>
+            </div>
+            <label class="select-label"
+              >Show
+              <select id="chart-select">
+                <option value="eval_bce">Validation BCE</option>
+                <option value="train_bce">Training BCE</option>
+                <option value="report_loss">Report loss</option>
+                <option value="pretraining">Mayo pretraining</option>
+              </select></label
+            >
+          </div>
+          <div
+            id="chart"
+            class="chart"
+            role="img"
+            aria-label="Learning curves from recorded experiment history"
+          ></div>
+          <div class="legend chart-legend" id="chart-legend"></div>
+        </div>
+        <div class="two-columns metric-explain">
+          <div>
+            <h4>Accuracy · higher is better</h4>
+            <p>
+              Fraction of correct outcomes at a probability threshold of 0.5. On
+              four validation patients, 75% means three correct predictions.
+            </p>
+          </div>
+          <div>
+            <h4>BCE · lower is better</h4>
+            <p>
+              Mean −[y log(p) + (1 − y) log(1 − p)]. This scores the predicted
+              probabilities, including how confident the model is.
+            </p>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-top">
+            <h3>Inspect individual predictions</h3>
+            <span class="mini">P(DEATH_RECORDED)</span>
+          </div>
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>Validation patient</th>
+                  <th>Target</th>
+                  <th>Events</th>
+                  <th>Image</th>
+                  <th>Image + events</th>
+                </tr>
+              </thead>
+              <tbody id="prediction-table"></tbody>
+            </table>
+          </div>
+          <p class="caption">
+            ✓ Correct at the 0.5 threshold · target 0 means no DEATH token in
+            the supplied record.
+          </p>
+        </div>
+        <details>
+          <summary>Inspect the first backward pass</summary>
+          <p>
+            Recorded gradient norms before clipping in the combined-input model.
+            These values show that the shared GPT, image projection, and report
+            head all receive training gradients.
+          </p>
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>Trainable component</th>
+                  <th>Gradient norm · step 1</th>
+                </tr>
+              </thead>
+              <tbody id="gradient-table"></tbody>
+            </table>
+          </div>
+        </details>
+        <details class="curves-details">
+          <summary>Open the full training-curve figure</summary>
+          <img
+            id="full-curves"
+            src="../results/run_a/learning_curves.png"
+            alt="All four logged training curves for Run A"
+            loading="lazy"
+          /><a
+            id="curve-link"
+            href="../results/run_a/learning_curves.png"
+            target="_blank"
+            rel="noopener"
+            >Open full-resolution figure ↗</a
+          >
+        </details>
+        <div class="wide-note">
+          <span class="note-icon">↗</span>
+          <div>
+            <strong
+              >The joint input leads on accuracy and BCE in both selected
+              runs.</strong
+            >
+            <p>
+              Validation is checked at step 1 and every 10 steps. Training stops
+              after 20 steps without a qualifying improvement; each mode
+              restores its lowest-validation-BCE checkpoint. The same validation
+              set supports checkpoint and run selection. AUROC, a ranking
+              metric, is included in the result cards.
+            </p>
+          </div>
+        </div>
+      </section>
+      <footer>
+        <div class="brand">
+          <span class="brand-mark">P<span>+</span></span
+          >PathAI
+        </div>
+        <p>Original event GPT. Visual context. Report-guided learning.</p>
+        <a href="../README.md">Explore the project README ↗</a
+        ><a href="#overview">Back to top ↑</a>
+      </footer>
+    </main>
+  </body>
+</html>

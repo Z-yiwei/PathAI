@@ -1,0 +1,18 @@
+# Local documentation and data
+docs/
+artifacts/
+
+# Local environments and credentials
+.deps*/
+.venv/
+venv/
+.env
+.env.*
+
+# Python and build output
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+build/
+dist/
