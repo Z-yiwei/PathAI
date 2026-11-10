@@ -1,11 +1,14 @@
+import json
+import tempfile
 import unittest
+from pathlib import Path
 
 import torch
 
-from pathai.data import prefix
+from pathai.data import prefix, prepare
 from pathai.encode_reports import contiguous_chunks
 from pathai.model import Multimodal, report_loss
-from pathai.original import PROJECT, ToyAesclea, ToyConfig, gpt_module
+from pathai.gpt import ToyAesclea, ToyConfig
 from pathai.report_quality import normalize_text, quality
 
 
@@ -15,7 +18,6 @@ class PipelineTests(unittest.TestCase):
         torch.set_num_threads(1)
 
     def test_original_gpt_and_transfer(self):
-        self.assertEqual(gpt_module.__file__, str(PROJECT / "model.py"))
         original = ToyAesclea(ToyConfig(vocab_size=20))
         model = Multimodal(48, original.state_dict())
         self.assertIsInstance(model.gpt, ToyAesclea)
@@ -55,6 +57,39 @@ class PipelineTests(unittest.TestCase):
             model(t, image, "events")[0],
             model(torch.nn.functional.pad(t, (0, 2)), image, "events")[0],
         )
+
+    def test_prepare_with_explicit_data_directory(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            data = root / "input"
+            for source, filename, pid, events in [
+                ("mayo", "train.jsonl", "train", ["DIAG_C34", "DEATH"]),
+                ("mayo", "val.jsonl", "val", ["DIAG_C34", "DEATH"]),
+                (
+                    "tcga",
+                    "tcga.jsonl",
+                    "patient",
+                    ["DIAG_C34", "PROC_RESECTION", "DEATH"],
+                ),
+            ]:
+                (data / source).mkdir(parents=True, exist_ok=True)
+                (data / source / filename).write_text(
+                    json.dumps({"patient_id": pid, "events": events}) + "\n"
+                )
+            (data / "tcga/reports").mkdir()
+            (data / "tcga/slides").mkdir()
+            report = data / "tcga/reports/patient.txt"
+            original = "Lung\tcarcinoma specimen diagnosis. " * 8
+            report.write_text(original)
+            (data / "tcga/slides/patient.svs").touch()
+            rows, vocab = prepare(root / "processed", data)
+            patient = next(row for row in rows if row["source"] == "tcga")
+            self.assertEqual(patient["input_events"], ["DIAG_C34", "PROC_RESECTION"])
+            self.assertEqual(patient["label"], 1)
+            self.assertTrue(patient["report_trainable"])
+            self.assertIn("PROC_RESECTION", vocab)
+            self.assertEqual(report.read_text(), original)
+            self.assertNotIn("\t", Path(patient["clean_report_path"]).read_text())
 
     def test_input_and_reports(self):
         self.assertEqual(

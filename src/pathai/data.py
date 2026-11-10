@@ -1,5 +1,6 @@
 """Read original events and write formatting-only report copies."""
 
+import argparse
 import json
 from pathlib import Path
 
@@ -7,7 +8,7 @@ import numpy as np
 import torch
 
 from .common import write_json, write_jsonl
-from .original import PROJECT, TOKEN_TO_ID, collate
+from .events import TOKEN_TO_ID, collate
 from .report_quality import normalize_text, quality
 
 
@@ -24,7 +25,8 @@ def prefix(events):
     return result
 
 
-def prepare(out=Path("artifacts/processed")):
+def prepare(out=Path("artifacts/processed"), data_dir=Path("data")):
+    data_dir = Path(data_dir).expanduser().resolve()
     out = Path(out)
     rows, seen = [], set()
     for source, split, file in [
@@ -32,7 +34,7 @@ def prepare(out=Path("artifacts/processed")):
         ("mayo", "val", "val.jsonl"),
         ("tcga", "unassigned", "tcga.jsonl"),
     ]:
-        for item in read_rows(PROJECT / "data" / source / file):
+        for item in read_rows(data_dir / source / file):
             if set(item) != {"patient_id", "events"}:
                 raise ValueError("Unexpected JSON fields")
             pid, events = item["patient_id"], item["events"]
@@ -47,8 +49,8 @@ def prepare(out=Path("artifacts/processed")):
             ):
                 raise ValueError("Invalid event sequence")
             seen.add(pid)
-            report = PROJECT / "data" / source / "reports" / f"{pid}.txt"
-            slide = PROJECT / "data" / source / "slides" / f"{pid}.svs"
+            report = data_dir / source / "reports" / f"{pid}.txt"
+            slide = data_dir / source / "slides" / f"{pid}.svs"
             if source == "tcga" and (not report.exists() or not slide.exists()):
                 raise ValueError("Missing TCGA file")
             clean_path, qc = None, None
@@ -119,5 +121,9 @@ def reports(rows):
 
 
 if __name__ == "__main__":
-    prepare()
-    print(Path("artifacts/processed/quality.json").read_text())
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--data-dir", type=Path, default=Path("data"))
+    parser.add_argument("--out", type=Path, default=Path("artifacts/processed"))
+    args = parser.parse_args()
+    prepare(args.out, args.data_dir)
+    print((args.out / "quality.json").read_text())

@@ -15,7 +15,8 @@ from torch.nn import functional as F
 from .common import write_json
 from .data import read_rows, reports, tokens
 from .model import Multimodal, report_loss
-from .original import TOKEN_TO_ID, ToyAesclea, ToyConfig, collate, make_batch
+from .events import TOKEN_TO_ID, collate, make_batch
+from .gpt import ToyAesclea, ToyConfig
 
 
 def pretrain(rows, out):
@@ -167,8 +168,6 @@ def main():
             "split": "6 train / 4 validation",
             "pretrain_steps": 300,
             "checkpoint_rule": "minimum validation BCE; check every 10 steps, patience 20 steps",
-            "gpt_source": "../aesclepius-jr/model.py",
-            "train_source": "../aesclepius-jr/train.py",
             "mayo_train": [p["patient_id"] for p in mayo],
             "mayo_val": [p["patient_id"] for p in mayo_val],
         },

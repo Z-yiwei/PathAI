@@ -8,7 +8,21 @@ Stage 2 minimizes **outcome BCE + 0.1 × event CE + 0.1 × report cosine loss**.
 
 ## Run
 
-Use Python 3.10+, CUDA-enabled PyTorch for feature extraction, and the supplied `aesclepius-jr/` directory beside `PathAI/`. Run commands from `PathAI/`; use new output directories for new experiments.
+Use Python 3.10+ and CUDA-enabled PyTorch for feature extraction. All model and training code is included in this repository. Run commands from `PathAI/`; use new output directories for new experiments.
+
+Place the dataset under `data/` as shown below, or pass `--data-dir /path/to/data` to the preparation command. Data and pretrained weights remain outside Git.
+
+```text
+data/
+├── mayo/
+│   ├── train.jsonl
+│   ├── val.jsonl
+│   └── reports/
+└── tcga/
+    ├── tcga.jsonl
+    ├── reports/
+    └── slides/
+```
 
 ### Step 0: Install dependencies and download the frozen encoders
 

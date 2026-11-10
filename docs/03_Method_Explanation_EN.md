@@ -60,7 +60,7 @@ Outputs: `artifacts/processed/patients.jsonl`, `vocab.json`, `quality.json`, and
 python -m pathai.train --stage pretrain --out artifacts/pretrain
 ```
 
-The implementation imports `ToyAesclea` and `ToyConfig` directly from `aesclepius-jr/model.py`, using the vocabulary and batching utilities from the original `train.py`.
+The original `ToyAesclea` and `ToyConfig` implementation is included in `src/pathai/gpt.py`. The original event vocabulary and batching utilities are included in `src/pathai/events.py`. All imports stay within the package.
 
 ### Backbone architecture
 

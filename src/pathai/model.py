@@ -4,7 +4,7 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 
-from .original import ToyAesclea, ToyConfig
+from .gpt import ToyAesclea, ToyConfig
 
 
 class Multimodal(nn.Module):

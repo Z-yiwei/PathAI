@@ -8,7 +8,21 @@ Stage 2 的目标为 **结局 BCE + 0.1 × 事件 CE + 0.1 × 报告余弦损失
 
 ## 运行
 
-使用 Python 3.10+；特征提取需要支持 CUDA 的 PyTorch。原项目 `aesclepius-jr/` 与 `PathAI/` 放在同一目录下。以下命令在 `PathAI/` 中执行，新实验使用新的输出目录。
+使用 Python 3.10+；特征提取需要支持 CUDA 的 PyTorch。仓库包含完整的模型与训练代码。以下命令在 `PathAI/` 中执行，新实验使用新的输出目录。
+
+数据放在 `data/`，也可通过预处理命令的 `--data-dir /path/to/data` 指定。数据和预训练权重不提交 Git。
+
+```text
+data/
+├── mayo/
+│   ├── train.jsonl
+│   ├── val.jsonl
+│   └── reports/
+└── tcga/
+    ├── tcga.jsonl
+    ├── reports/
+    └── slides/
+```
 
 ### Step 0：安装依赖，下载冻结的编码器
 

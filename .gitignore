@@ -2,6 +2,7 @@
 docs/*
 !docs/03_Method_Explanation_EN.md
 artifacts/
+data/
 
 # Local environments and credentials
 .deps*/
