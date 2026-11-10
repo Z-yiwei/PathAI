@@ -1,4 +1,4 @@
-"""Compare Stage 2 losses with fixed multimodal inputs and training settings."""
+"""Controlled loss ablations / 固定其他配置的损失消融。"""
 
 import argparse
 import json
@@ -25,6 +25,18 @@ COLORS = ["#248d80", "#cb8c53", "#8270b5", "#bd6585", "#758595"]
 
 
 def plot_results(records, out):
+    """Plot paired loss-ablation results / 绘制两组损失消融结果。
+
+    Input / 输入:
+        records: run→variant metrics and histories; out: figure directory.
+        records：按实验和方案组织的指标与日志；out：图像目录。
+    Processing / 处理:
+        Compare accuracy/BCE and plot validation traces with selected and final steps.
+        比较准确率和 BCE，绘制验证轨迹并标记最佳与终止位置。
+    Output / 输出:
+        comparison.png and learning_curves.png; returns None.
+        保存指标对比图与曲线，无返回值。
+    """
     fig, axes = plt.subplots(2, 2, figsize=(12, 8))
     curves, curve_axes = plt.subplots(1, 2, figsize=(12, 4))
     for column, (run, variants) in enumerate(records.items()):
@@ -85,6 +97,18 @@ def plot_results(records, out):
 
 
 def main():
+    """Run controlled Stage 2 loss ablations / 执行 Stage 2 损失消融。
+
+    Input / 输入:
+        CLI --pretrained-run, --out, --results; cached patient features.
+        预训练目录、训练输出目录、结果目录及患者特征缓存。
+    Processing / 处理:
+        Train five loss variants with image+events for each run; verify other settings and splits match.
+        每组联合输入训练五种损失配置，核对其他设置与患者划分一致。
+    Output / 输出:
+        Per-variant checkpoints/logs and aggregate metrics/figures; returns None.
+        输出各方案权重、日志及汇总指标、图像，无返回值。
+    """
     parser = argparse.ArgumentParser()
     parser.add_argument("--pretrained-run", type=Path, required=True)
     parser.add_argument("--out", type=Path, default=Path("artifacts/ablation"))

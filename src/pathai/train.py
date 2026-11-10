@@ -1,4 +1,4 @@
-"""Mayo GPT pretraining followed by joint Mayo/TCGA training; one fixed 6/4 patient split."""
+"""Mayo pretraining and multimodal fine-tuning / Mayo 预训练与多模态微调。"""
 
 import argparse
 import copy
@@ -20,6 +20,18 @@ from .gpt import ToyAesclea, ToyConfig
 
 
 def pretrain(rows, out):
+    """Pretrain the event GPT on Mayo / 在 Mayo 上预训练事件 GPT。
+
+    Input / 输入:
+        rows: prepared patients with train/val splits; out: existing run directory.
+        rows：含训练/验证标记的患者记录；out：已创建的实验目录。
+    Processing / 处理:
+        Train next-event prediction for 300 steps with batch size 32; log train/validation CE.
+        以 batch 32 训练 300 步下一事件预测，记录训练和验证交叉熵。
+    Output / 输出:
+        GPT state dictionary; saves gpt_pretrained.pt and pretraining.json.
+        返回 GPT 权重字典，保存预训练权重和训练记录。
+    """
     torch.manual_seed(0)
     rng = random.Random(0)
     train = [
@@ -58,6 +70,18 @@ def pretrain(rows, out):
 
 
 def metrics(y, p):
+    """Score patient outcome probabilities / 评估患者结局概率。
+
+    Input / 输入:
+        y: binary labels [N]; p: predicted probabilities [N].
+        y：二分类标签 [N]；p：预测概率 [N]。
+    Processing / 处理:
+        Threshold at 0.5 for accuracy, compute unweighted BCE and ranking AUROC.
+        按 0.5 阈值计算准确率，并计算无类别权重的 BCE 与 AUROC。
+    Output / 输出:
+        Dictionary with accuracy, bce, and auroc.
+        包含 accuracy、bce、auroc 的字典。
+    """
     return {
         "accuracy": float(accuracy_score(y, p >= 0.5)),
         "bce": float(log_loss(y, p, labels=[0, 1])),
@@ -66,6 +90,18 @@ def metrics(y, p):
 
 
 def main():
+    """Run pretraining and/or multimodal fine-tuning / 执行预训练或多模态微调。
+
+    Input / 输入:
+        CLI stage, experiment, modes, learning rates, loss weights, and output paths; processed data and feature caches.
+        命令行阶段、实验、输入模式、学习率、损失权重及路径；预处理数据和特征缓存。
+    Processing / 处理:
+        Load/pretrain GPT; stratify TCGA 6/4; train each mode with Mayo/TCGA losses and select by validation BCE.
+        加载或预训练 GPT，分层划分 TCGA 为 6/4，联合两个数据集训练各模式并按验证 BCE 选模型。
+    Output / 输出:
+        Checkpoints, config/split, histories, patient predictions, and metrics; returns None.
+        保存权重、配置、划分、训练记录、患者预测与指标，无返回值。
+    """
     parser = argparse.ArgumentParser()
     parser.add_argument("--out", default="artifacts/run")
     parser.add_argument(
@@ -138,6 +174,8 @@ def main():
     r, available = reports(tcga)
     mr, ma = reports(mayo)
     y = torch.tensor([p["label"] for p in tcga], dtype=torch.float32)
+    # Pool cached patch features per patient, then normalize the slide vector.
+    # 先在每位患者内部平均组织块特征，再归一化为切片向量。
     image = F.normalize(
         torch.tensor(
             np.stack(
@@ -153,6 +191,8 @@ def main():
     )
     split_rng = random.Random(args.seed)
     validation = []
+    # Hold out two patients per class; all input modes reuse this split.
+    # 每类选两位患者用于验证，三种输入模式共用该划分。
     for label in [0, 1]:
         indices = [i for i in range(len(tcga)) if int(y[i]) == label]
         split_rng.shuffle(indices)
@@ -186,6 +226,8 @@ def main():
         torch.manual_seed(args.seed)
         rng = np.random.default_rng(args.seed)
         model = Multimodal(len(vocab) + 1, pretrained)
+        # Fine-tune the pretrained backbone more slowly than the newly added layers.
+        # 预训练主干使用较小学习率，新加入的投影和预测头使用较大学习率。
         optimizer = torch.optim.AdamW(
             [
                 {"params": model.gpt.parameters(), "lr": args.gpt_lr},
@@ -209,6 +251,8 @@ def main():
                 model.train()
                 idx = rng.choice(len(mayo), 32, replace=False)
                 logits, pred = model(t[tr], im[tr], mode)
+                # Equalize total positive/negative weight, not the number of patients.
+                # 调整每位患者的损失权重，使正负两类总权重相同。
                 class_weight = torch.where(
                     y[tr] > 0,
                     len(tr) / (2 * y[tr].sum()),
@@ -217,6 +261,8 @@ def main():
                 bce = F.binary_cross_entropy_with_logits(
                     logits, y[tr], weight=class_weight
                 )
+                # Both cohorts update the same GPT; only combined TCGA LM sees the image.
+                # 两个队列更新同一个 GPT；只有联合模式的 TCGA 事件任务读取图像。
                 lm = model.gpt.lm_loss(m[idx]) + model.event_loss(
                     t[tr], im[tr] if mode == "both" else None
                 )
@@ -224,6 +270,8 @@ def main():
                 report = report_loss(pred, r[tr], available[tr]) + report_loss(
                     mreport, mr[idx], ma[idx]
                 )
+                # Zero-weight objectives are omitted from backpropagation for ablations.
+                # 消融时零权重损失不加入总目标，不参与反向传播。
                 loss = sum(
                     weight * term
                     for weight, term in [
@@ -253,6 +301,8 @@ def main():
                 with torch.no_grad():
                     train_logits, train_report = model(t[tr], im[tr], mode)
                     eval_logits, _ = model(t[te], im[te], mode)
+                    # Logged training BCE is unweighted, matching validation BCE.
+                    # 图中训练 BCE 不加类别权重，与验证 BCE 保持相同计算口径。
                     trace.append(
                         {
                             "step": step,
@@ -271,6 +321,8 @@ def main():
                 if step and trace[-1]["eval_bce"] < best_loss - 1e-6:
                     best_loss = trace[-1]["eval_bce"]
                     best_step = step
+                    # Snapshot tensors so later optimizer updates cannot overwrite the best state.
+                    # 深拷贝参数快照，避免后续更新覆盖最佳检查点。
                     best = copy.deepcopy(model.state_dict())
                 if step and step - best_step >= 20:
                     break

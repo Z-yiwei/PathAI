@@ -1,4 +1,4 @@
-"""Read tissue regions from H&E SVS and cache frozen Phikon patch features."""
+"""Tissue sampling and frozen Phikon encoding / 组织采样与冻结 Phikon 编码。"""
 
 import argparse
 import json

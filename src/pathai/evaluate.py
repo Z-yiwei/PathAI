@@ -1,4 +1,4 @@
-"""Aggregate patient predictions and plot the single fixed validation split."""
+"""Saved prediction metrics and plots / 已保存预测的指标计算与绘图。"""
 
 import argparse
 import csv
@@ -16,6 +16,18 @@ from .common import write_json
 
 
 def main():
+    """Summarize saved predictions and histories / 汇总已保存的预测与训练记录。
+
+    Input / 输入:
+        CLI --run and optional --out; predictions.csv, history.json, pretraining.json, config.json.
+        实验目录与可选输出目录；读取患者预测、微调记录、预训练记录和配置。
+    Processing / 处理:
+        Compute accuracy/BCE/AUROC and plot logged curves, checkpoints, and training endpoints.
+        计算 Accuracy/BCE/AUROC，绘制日志曲线、最佳检查点和训练终点；不重新推理。
+    Output / 输出:
+        metrics.json, learning_curves.png, comparison.png; returns None.
+        输出指标 JSON、训练曲线和指标对比图，无返回值。
+    """
     parser = argparse.ArgumentParser()
     parser.add_argument("--run", default="artifacts/run")
     parser.add_argument(

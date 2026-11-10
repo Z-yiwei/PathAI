@@ -1,4 +1,4 @@
-"""Run the selected input mode on a patient with its validation-selected checkpoint."""
+"""Single-patient outcome inference / 单患者结局预测。"""
 
 import argparse
 import json
@@ -13,6 +13,18 @@ from .model import Multimodal
 
 
 def main():
+    """Predict one validation patient / 对一位验证患者执行预测。
+
+    Input / 输入:
+        CLI --run, --patient, --mode; checkpoint and prepared event/image features.
+        命令行实验目录、患者 ID、模式；对应检查点及预处理事件/图像特征。
+    Processing / 处理:
+        Require validation membership, restore the matching model, encode inputs, and apply sigmoid.
+        检查患者属于验证集，恢复对应模型，整理输入并用 sigmoid 得到概率。
+    Output / 输出:
+        Print JSON with patient ID, mode, probability, and class at threshold 0.5; returns None.
+        打印患者 ID、模式、概率及 0.5 阈值分类的 JSON，无返回值。
+    """
     parser = argparse.ArgumentParser()
     parser.add_argument("--patient", required=True)
     parser.add_argument("--mode", choices=["events", "image", "both"], default="both")
