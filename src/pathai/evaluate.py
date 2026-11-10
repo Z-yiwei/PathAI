@@ -41,6 +41,7 @@ def main():
         }
     write_json(out / "metrics.json", result)
     history = json.loads((root / "history.json").read_text())
+    budget = json.loads((root / "config.json").read_text())["steps"]
     pre = json.loads((root / "pretraining.json").read_text())
     fig, axes = plt.subplots(2, 2, figsize=(11, 7))
     for field in ["train_lm", "val_lm"]:
@@ -59,8 +60,21 @@ def main():
             (axes[1, 1], "report_loss", "Training report prediction"),
         ]:
             (line,) = ax.plot(
-                [x["step"] for x in trace], [x[field] for x in trace], label=names[mode]
+                [x["step"] for x in trace],
+                [x[field] for x in trace],
+                label=f"{names[mode]} (end: {trace[-1]['step']})",
+                marker=".",
+                markersize=3,
             )
+            ax.scatter(
+                trace[-1]["step"],
+                trace[-1][field],
+                marker="x",
+                s=45,
+                color=line.get_color(),
+                zorder=4,
+            )
+            ax.set_xlim(-2, budget + 3)
             if field == "eval_bce":
                 selected = next(
                     x for x in trace if x["step"] == record["selected_step"]
@@ -78,11 +92,18 @@ def main():
                 }[field],
             )
     for ax in axes.flat:
-        ax.legend()
+        ax.legend(fontsize=8)
         ax.grid(alpha=0.2)
     fig.suptitle("Training curves")
-    fig.tight_layout()
-    fig.savefig(out / "learning_curves.png", dpi=170)
+    fig.text(
+        0.5,
+        0.015,
+        "Dots: logged values | Filled circle: selected checkpoint | x: training end (early stopping or step limit)",
+        ha="center",
+        fontsize=8,
+    )
+    fig.tight_layout(rect=(0, 0.045, 1, 1))
+    fig.savefig(out / "learning_curves.png", dpi=170, bbox_inches="tight")
     plt.close(fig)
     fig, axes = plt.subplots(1, 3, figsize=(10, 3.5))
     for ax, metric in zip(axes, ["accuracy", "bce", "auroc"]):

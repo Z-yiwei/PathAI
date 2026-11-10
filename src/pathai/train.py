@@ -68,6 +68,17 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--out", default="artifacts/run")
     parser.add_argument(
+        "--stage", choices=["all", "pretrain", "finetune"], default="all"
+    )
+    parser.add_argument("--experiment", choices=["a", "b"])
+    parser.add_argument(
+        "--modes",
+        nargs="+",
+        choices=["events", "image", "both"],
+        default=["events", "image", "both"],
+    )
+    parser.add_argument("--outcome-weight", type=float, default=1.0)
+    parser.add_argument(
         "--seed",
         type=int,
         default=0,
@@ -76,7 +87,7 @@ def main():
     parser.add_argument(
         "--pretrained-run",
         type=Path,
-        help="Reuse the fixed seed-0 Mayo pretraining from an existing run",
+        help="Reuse Mayo pretraining from an existing run",
     )
     parser.add_argument("--steps", type=int, default=100)
     parser.add_argument("--lr", type=float, default=0.001)
@@ -84,11 +95,24 @@ def main():
     parser.add_argument("--report-weight", type=float, default=0.1)
     parser.add_argument("--lm-weight", type=float, default=0.1)
     args = parser.parse_args()
+    if args.experiment:
+        experiments = json.loads(Path("configs/experiments.json").read_text())
+        args.seed = experiments[args.experiment]["seed"]
+    if args.stage == "finetune" and args.pretrained_run is None:
+        parser.error("--stage finetune requires --pretrained-run")
+    weights = [args.outcome_weight, args.lm_weight, args.report_weight]
+    if min(weights) < 0 or max(weights) == 0:
+        parser.error(
+            "Loss weights must be nonnegative with at least one positive weight"
+        )
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=False)
     torch.set_num_threads(2)
     rows = read_rows("artifacts/processed/patients.jsonl")
     vocab = json.loads(Path("artifacts/processed/vocab.json").read_text())
+    if args.stage == "pretrain":
+        pretrain(rows, out)
+        return
     if args.pretrained_run is None:
         pretrained = pretrain(rows, out)
     else:
@@ -159,7 +183,7 @@ def main():
     summaries = {}
     prediction_rows = []
     history = []
-    for mode in ["events", "image", "both"]:
+    for mode in args.modes:
         torch.manual_seed(args.seed)
         rng = np.random.default_rng(args.seed)
         model = Multimodal(len(vocab) + 1, pretrained)
@@ -201,7 +225,15 @@ def main():
                 report = report_loss(pred, r[tr], available[tr]) + report_loss(
                     mreport, mr[idx], ma[idx]
                 )
-                loss = bce + args.lm_weight * lm + args.report_weight * report
+                loss = sum(
+                    weight * term
+                    for weight, term in [
+                        (args.outcome_weight, bce),
+                        (args.lm_weight, lm),
+                        (args.report_weight, report),
+                    ]
+                    if weight > 0
+                )
                 optimizer.zero_grad()
                 loss.backward()
                 if step == 1:

@@ -1,5 +1,6 @@
 # Local documentation and data
-docs/
+docs/*
+!docs/03_Method_Explanation_EN.md
 artifacts/
 
 # Local environments and credentials
